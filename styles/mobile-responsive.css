@@ -1,0 +1,154 @@
+/* 移动端响应式优化 */
+
+@media (max-width: 640px) {
+  /* 字体大小调整 */
+  body {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  h3 {
+    font-size: 1.1rem !important;
+  }
+  
+  /* 按钮优化 */
+  button {
+    min-height: 44px; /* iOS 推荐最小触摸面积 */
+    font-size: 16px; /* 避免 iOS 自动缩放 */
+  }
+  
+  /* 表单输入优化 */
+  input, select, textarea {
+    font-size: 16px; /* 避免 iOS 自动缩放 */
+    min-height: 44px;
+  }
+  
+  /* 容器边距 */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* 模态框优化 */
+  .modal {
+    margin: 1rem;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  /* 卡片间距 */
+  .card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+  
+  /* 导航栏 */
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  
+  /* 报告页面 */
+  .report-section {
+    padding: 1.5rem 1rem;
+  }
+  
+  /* 图表优化 */
+  .chart-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 隐藏横向滚动条 */
+  .chart-container::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 平板设备 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .container {
+    max-width: 90%;
+  }
+  
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 增大可点击区域 */
+  a, button, .clickable {
+    padding: 0.75rem;
+    margin: 0.25rem;
+  }
+  
+  /* 移除 hover 效果 */
+  *:hover {
+    transition: none;
+  }
+}
+
+/* 横屏模式优化 */
+@media (orientation: landscape) and (max-height: 600px) {
+  .modal {
+    max-height: 85vh;
+  }
+  
+  .navbar {
+    padding: 0.25rem 1rem;
+  }
+}
+
+/* 暗黑模式支持 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --text-primary: #e5e5e5;
+    --text-secondary: #a0a0a0;
+  }
+}
+
+/* iOS 安全区域适配 */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+  
+  .safe-area-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* 性能优化 */
+.will-change-transform {
+  will-change: transform;
+}
+
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* 滚动优化 */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
