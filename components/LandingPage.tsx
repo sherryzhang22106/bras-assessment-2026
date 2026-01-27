@@ -43,9 +43,13 @@ export const LandingPage: React.FC<{ onStart: () => void }> = ({ onStart }) => {
             >
               开始挽回可能性评估
             </button>
-            <div className="flex items-center -space-x-3">
-              {[11, 12, 13, 14].map(i => (
-                <img key={i} src={`https://i.pravatar.cc/100?img=${i}`} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" alt="User" />
+            <div className="flex items-center -space-x-2">
+              {['#FF6B6B', '#4ECDC4', '#6B5CE7', '#F59E0B'].map((color, i) => (
+                <div key={i} className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center" style={{ backgroundColor: color }}>
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                </div>
               ))}
               <span className="pl-6 text-sm font-medium text-slate-400">已有 8.5k+ 用户获得重生指引</span>
             </div>
