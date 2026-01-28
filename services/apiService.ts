@@ -63,6 +63,75 @@ export const generateDeepReport = async (
 };
 
 /**
+ * 流式生成 AI 深度报告
+ * @param onChunk - 每次收到新内容时的回调
+ * @param onComplete - 生成完成时的回调
+ * @param onError - 发生错误时的回调
+ */
+export const generateDeepReportStream = async (
+  scores: UserScores,
+  answers: Record<number, Option>,
+  primaryType: string,
+  part: 'part1' | 'part2' = 'part1',
+  part1Summary: Part1Summary | undefined,
+  onChunk: (content: string) => void,
+  onComplete: (fullContent: string) => void,
+  onError: (error: string) => void
+): Promise<void> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/generate-report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scores, answers, primaryType, part, part1Summary, stream: true })
+    });
+
+    if (!response.ok) {
+      throw new Error('生成报告失败');
+    }
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.error) {
+                onError(parsed.error);
+                return;
+              }
+              if (parsed.done) {
+                onComplete(parsed.fullContent || fullContent);
+                return;
+              }
+              if (parsed.content) {
+                fullContent += parsed.content;
+                onChunk(parsed.content);
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Stream API Error:', error);
+    onError('由于分析请求过于庞大，生成深度报告时遇到一点小麻烦。请您参考基础评估结果，或稍后尝试重新生成。');
+  }
+};
+
+/**
  * 保存测评记录
  */
 export const saveAssessment = async (
