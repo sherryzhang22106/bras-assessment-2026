@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { generateDeepReport, saveAssessment, generateSessionId, Part1Summary } from '../services/apiService';
+import { generateDeepReport, Part1Summary } from '../services/apiService';
 import { UserScores, Option } from '../types';
 import { getPrimaryType } from '../utils/scoring';
 
@@ -8,7 +8,6 @@ interface Props {
   scores: UserScores;
   answers: Record<number, Option>;
   cachedContent: string | null;
-  accessCode: string;
   part: 'part1' | 'part2';
   part1Summary?: Part1Summary;
   onReportReady: (content: string, summary?: Part1Summary) => void;
@@ -39,7 +38,6 @@ export const AIReport: React.FC<Props> = ({
   scores,
   answers,
   cachedContent,
-  accessCode,
   part,
   part1Summary,
   onReportReady,
@@ -48,7 +46,6 @@ export const AIReport: React.FC<Props> = ({
   const [report, setReport] = useState<string>(cachedContent || '');
   const [loading, setLoading] = useState(!cachedContent);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
-  const hasSavedRef = React.useRef(false);
 
   const LOADING_MESSAGES = part === 'part1' ? LOADING_MESSAGES_PART1 : LOADING_MESSAGES_PART2;
 
@@ -82,23 +79,11 @@ export const AIReport: React.FC<Props> = ({
 
       setLoading(false);
       clearInterval(msgInterval);
-
-      // 上篇完成后保存数据，下篇完成后更新数据
-      if (!hasSavedRef.current) {
-        hasSavedRef.current = true;
-        const sessionId = generateSessionId();
-        try {
-          await saveAssessment(sessionId, answers, scores, text, accessCode);
-          console.log('✅ 测评数据已保存', { sessionId, accessCode, part });
-        } catch (error) {
-          console.error('⚠️ 保存测评数据失败:', error);
-        }
-      }
     };
     fetchReport();
 
     return () => clearInterval(msgInterval);
-  }, [scores, answers, cachedContent, accessCode, part, part1Summary, onReportReady]);
+  }, [scores, answers, cachedContent, part, part1Summary, onReportReady]);
 
   const formattedSections = report.split('\n\n').filter(p => p.trim() !== '');
 

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { AccessCodeModal } from './components/AccessCodeModal';
 import { Disclaimer } from './components/Disclaimer';
@@ -8,13 +8,14 @@ import { BasicReport } from './components/BasicReport';
 import { AIReport } from './components/AIReport';
 import { AppStep, UserScores, Option } from './types';
 import { calculateScores } from './utils/scoring';
-import { Part1Summary } from './services/apiService';
+import { Part1Summary, saveAssessment, generateSessionId } from './services/apiService';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('LANDING');
   const [scores, setScores] = useState<UserScores | null>(null);
   const [answers, setAnswers] = useState<Record<number, Option>>({});
   const [accessCode, setAccessCode] = useState<string>('');
+  const sessionIdRef = useRef<string>('');
 
   // 上篇状态
   const [showAIPart1, setShowAIPart1] = useState(false);
@@ -36,7 +37,7 @@ const App: React.FC = () => {
   };
   const handleDisclaimerAgree = () => setStep('ASSESSMENT');
 
-  const handleAssessmentComplete = (completedAnswers: Record<number, Option>) => {
+  const handleAssessmentComplete = async (completedAnswers: Record<number, Option>) => {
     const computedScores = calculateScores(completedAnswers);
     setAnswers(completedAnswers);
     setScores(computedScores);
@@ -49,6 +50,16 @@ const App: React.FC = () => {
     setAiLoadingPart2(false);
     setPart1Summary(null);
     setStep('REPORT');
+
+    // 测评完成后立即保存数据（不含AI报告）
+    const newSessionId = generateSessionId();
+    sessionIdRef.current = newSessionId;
+    try {
+      await saveAssessment(newSessionId, completedAnswers, computedScores, undefined, accessCode);
+      console.log('✅ 测评数据已保存', { sessionId: newSessionId, accessCode });
+    } catch (error) {
+      console.error('⚠️ 保存测评数据失败:', error);
+    }
   };
 
   // 生成上篇
@@ -122,7 +133,6 @@ const App: React.FC = () => {
           scores={scores}
           answers={answers}
           cachedContent={aiReportPart1}
-          accessCode={accessCode}
           part="part1"
           onReportReady={handleAIPart1Ready}
           onClose={() => {}}
@@ -134,7 +144,6 @@ const App: React.FC = () => {
           scores={scores}
           answers={answers}
           cachedContent={aiReportPart2}
-          accessCode={accessCode}
           part="part2"
           part1Summary={part1Summary}
           onReportReady={handleAIPart2Ready}
