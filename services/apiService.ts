@@ -2,6 +2,16 @@ import { UserScores, Option } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+// 上篇摘要信息（用于下篇生成）
+export interface Part1Summary {
+  grade: string;
+  probability: string;
+  reasonType: string;
+  mainAdvantages: string;
+  mainDisadvantages: string;
+  partnerPsychology: string;
+}
+
 /**
  * 验证访问码
  */
@@ -22,24 +32,28 @@ export const verifyAccessCode = async (code: string): Promise<boolean> => {
 
 /**
  * 生成 AI 深度报告（通过后端代理调用 DeepSeek API）
+ * @param part - 报告部分：'part1' 上篇（情感分析）或 'part2' 下篇（行动方案）
+ * @param part1Summary - 下篇生成时需要的上篇摘要信息
  */
 export const generateDeepReport = async (
-  scores: UserScores, 
+  scores: UserScores,
   answers: Record<number, Option>,
-  primaryType: string
+  primaryType: string,
+  part: 'part1' | 'part2' = 'part1',
+  part1Summary?: Part1Summary
 ): Promise<string> => {
   try {
     const response = await fetch(`${API_BASE_URL}/generate-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scores, answers, primaryType })
+      body: JSON.stringify({ scores, answers, primaryType, part, part1Summary })
     });
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || '生成报告失败');
     }
-    
+
     const data = await response.json();
     return data.report;
   } catch (error) {

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { generateDeepReport, exportPDF, saveAssessment, generateSessionId } from '../services/apiService';
+import { generateDeepReport, saveAssessment, generateSessionId, Part1Summary } from '../services/apiService';
 import { UserScores, Option } from '../types';
 import { getPrimaryType } from '../utils/scoring';
 
@@ -9,25 +9,48 @@ interface Props {
   answers: Record<number, Option>;
   cachedContent: string | null;
   accessCode: string;
-  onReportReady: (content: string) => void;
+  part: 'part1' | 'part2';
+  part1Summary?: Part1Summary;
+  onReportReady: (content: string, summary?: Part1Summary) => void;
   onClose: () => void;
 }
 
-const LOADING_MESSAGES = [
+// 上篇加载提示
+const LOADING_MESSAGES_PART1 = [
   "正在解构过往情感契约...",
   "正在分析 TA 的防御机制...",
+  "正在评估底层依恋模式冲突...",
+  "正在剖析分手深层原因...",
+  "正在解读对方心理状态...",
+  "正在评估关系修复可能性..."
+];
+
+// 下篇加载提示
+const LOADING_MESSAGES_PART2 = [
   "正在测算复联路径成功率...",
   "正在生成 30 天行动指南...",
   "正在整理深度复联话术...",
-  "正在评估底层依恋模式冲突...",
-  "正在为您定制关系修复方案..."
+  "正在为您定制关系修复方案...",
+  "正在制定阶段性行动计划...",
+  "正在评估风险与红线..."
 ];
 
-export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, accessCode, onReportReady, onClose }) => {
+export const AIReport: React.FC<Props> = ({
+  scores,
+  answers,
+  cachedContent,
+  accessCode,
+  part,
+  part1Summary,
+  onReportReady,
+  onClose
+}) => {
   const [report, setReport] = useState<string>(cachedContent || '');
   const [loading, setLoading] = useState(!cachedContent);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const hasSavedRef = React.useRef(false);
+
+  const LOADING_MESSAGES = part === 'part1' ? LOADING_MESSAGES_PART1 : LOADING_MESSAGES_PART2;
 
   useEffect(() => {
     if (cachedContent) return;
@@ -39,18 +62,35 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
 
     const fetchReport = async () => {
       const type = getPrimaryType(scores);
-      const text = await generateDeepReport(scores, answers, type);
+      const text = await generateDeepReport(scores, answers, type, part, part1Summary);
       setReport(text);
-      onReportReady(text); 
+
+      if (part === 'part1') {
+        // 从上篇内容中提取摘要信息
+        const summary: Part1Summary = {
+          grade: scores.grade || '未知',
+          probability: scores.probability || '未知',
+          reasonType: scores.reasonType || type || '未知',
+          mainAdvantages: extractAdvantages(text),
+          mainDisadvantages: extractDisadvantages(text),
+          partnerPsychology: extractPartnerPsychology(text)
+        };
+        onReportReady(text, summary);
+      } else {
+        onReportReady(text);
+      }
+
       setLoading(false);
       clearInterval(msgInterval);
-      
-      // 保存测评数据到数据库（使用 ref 确保只保存一次）
-      if (!hasSavedRef.current) {
+
+      // 只在下篇完成后保存完整测评数据到数据库
+      if (part === 'part2' && !hasSavedRef.current) {
         hasSavedRef.current = true;
         const sessionId = generateSessionId();
         try {
-          await saveAssessment(sessionId, answers, scores, text, accessCode);
+          // 合并上下篇内容保存
+          const fullReport = part1Summary ? `${text}` : text;
+          await saveAssessment(sessionId, answers, scores, fullReport, accessCode);
           console.log('✅ 测评数据已保存', { sessionId, accessCode });
         } catch (error) {
           console.error('⚠️ 保存测评数据失败:', error);
@@ -60,9 +100,12 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
     fetchReport();
 
     return () => clearInterval(msgInterval);
-  }, [scores, answers, cachedContent, accessCode, onReportReady]);
+  }, [scores, answers, cachedContent, accessCode, part, part1Summary, onReportReady]);
 
   const formattedSections = report.split('\n\n').filter(p => p.trim() !== '');
+
+  const partTitle = part === 'part1' ? 'AI 深度情感分析报告（上篇）' : 'AI 完整挽回行动方案（下篇）';
+  const partSubtitle = part === 'part1' ? 'Emotional Analysis' : 'Action Plan';
 
   return (
     <div className="fixed inset-0 z-[110] bg-slate-900/30 backdrop-blur-sm flex justify-end">
@@ -75,11 +118,11 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
                 </svg>
              </div>
              <div>
-               <h2 className="text-lg font-bold text-slate-900">AI 深度定制报告</h2>
-               <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">Action Plan</p>
+               <h2 className="text-lg font-bold text-slate-900">{partTitle}</h2>
+               <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">{partSubtitle}</p>
              </div>
            </div>
-           <button 
+           <button
             onClick={onClose}
             className="w-9 h-9 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-400 transition-all border border-slate-200"
            >
@@ -98,7 +141,7 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
                </div>
                <div className="text-center space-y-4">
                  <h3 className="text-xl font-bold text-slate-900 transition-all duration-500 animate-pulse">
-                   报告深度构建中...
+                   {part === 'part1' ? '情感分析报告构建中...' : '行动方案生成中...'}
                  </h3>
                  <p className="text-slate-500 text-sm font-medium h-6 flex items-center justify-center">
                    <span key={loadingMsgIdx} className="animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -107,9 +150,9 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
                  </p>
                  <div className="pt-4 flex justify-center space-x-1.5">
                    {LOADING_MESSAGES.map((_, i) => (
-                     <div 
-                       key={i} 
-                       className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === loadingMsgIdx ? 'bg-primary w-4' : 'bg-slate-200'}`} 
+                     <div
+                       key={i}
+                       className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === loadingMsgIdx ? 'bg-primary w-4' : 'bg-slate-200'}`}
                      />
                    ))}
                  </div>
@@ -120,7 +163,9 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
                {/* 顶部引言卡片 - 固定开头语 */}
                <div className="bg-orange-50/80 p-8 md:p-10 rounded-[2.5rem] border border-orange-100/50 shadow-sm relative overflow-hidden text-center">
                   <p className="text-orange-900/80 text-lg md:text-xl leading-[1.6] font-medium italic">
-                    每一段感情，都是一次重新认识自我的契机。
+                    {part === 'part1'
+                      ? '每一段感情，都是一次重新认识自我的契机。'
+                      : '改变从行动开始，成长从此刻启程。'}
                   </p>
                </div>
 
@@ -131,11 +176,11 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
                    const title = lines[0].length < 40 ? lines[0] : null;
                    const content = title ? lines.slice(1).join('\n') : section;
                    const isClosing = section.includes('亲爱的朋友');
-                   
+
                    if (isClosing) {
-                     const highlightedText = content.split('请对自己好一点').map((part, i, arr) => (
+                     const highlightedText = content.split('请对自己好一点').map((partText, i, arr) => (
                        <React.Fragment key={i}>
-                         {part}
+                         {partText}
                          {i < arr.length - 1 && (
                            <span className="text-rose-500 font-black text-xl md:text-2xl underline decoration-rose-300 underline-offset-8 mx-1">
                              请对自己好一点
@@ -179,10 +224,12 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
                    );
                  })}
                </div>
-               
+
                <div className="text-center py-12">
                   <div className="w-16 h-0.5 bg-slate-200 mx-auto mb-6"></div>
-                  <p className="text-slate-300 text-[9px] font-black tracking-[0.4em] uppercase">End of Analysis</p>
+                  <p className="text-slate-300 text-[9px] font-black tracking-[0.4em] uppercase">
+                    {part === 'part1' ? 'End of Part 1' : 'End of Analysis'}
+                  </p>
                </div>
              </div>
            )}
@@ -191,3 +238,31 @@ export const AIReport: React.FC<Props> = ({ scores, answers, cachedContent, acce
     </div>
   );
 };
+
+// 从上篇内容中提取优势信息
+function extractAdvantages(text: string): string {
+  const match = text.match(/优势[^：:]*[：:]\s*([^。]+。)/);
+  if (match) return match[1].slice(0, 100);
+  // 尝试其他模式
+  const altMatch = text.match(/你的优势[^：:]*[：:]\s*([^。]+。)/);
+  if (altMatch) return altMatch[1].slice(0, 100);
+  return '有一定的感情基础和挽回意愿';
+}
+
+// 从上篇内容中提取劣势信息
+function extractDisadvantages(text: string): string {
+  const match = text.match(/劣势[^：:]*[：:]\s*([^。]+。)/);
+  if (match) return match[1].slice(0, 100);
+  const altMatch = text.match(/你的劣势[^：:]*[：:]\s*([^。]+。)/);
+  if (altMatch) return altMatch[1].slice(0, 100);
+  return '需要改善沟通方式和情绪管理';
+}
+
+// 从上篇内容中提取对方心理状态
+function extractPartnerPsychology(text: string): string {
+  const match = text.match(/对方[^：:]*心理[^：:]*[：:]\s*([^。]+。)/);
+  if (match) return match[1].slice(0, 100);
+  const altMatch = text.match(/TA[^：:]*心理[^：:]*[：:]\s*([^。]+。)/);
+  if (altMatch) return altMatch[1].slice(0, 100);
+  return '处于观望和防御状态';
+}

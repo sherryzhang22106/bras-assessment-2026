@@ -1,37 +1,76 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { UserScores, Option } from '../types';
+import { Part1Summary } from '../services/apiService';
 
 interface Props {
   scores: UserScores;
   answers: Record<number, Option>;
-  onGenerateAI: () => void;
-  showAIReport: boolean;
-  aiReportContent: string | null;
-  aiReportLoading: boolean;
+  // 上篇相关
+  onGenerateAIPart1: () => void;
+  showAIPart1: boolean;
+  aiReportPart1: string | null;
+  aiLoadingPart1: boolean;
+  // 下篇相关
+  onGenerateAIPart2: () => void;
+  showAIPart2: boolean;
+  aiReportPart2: string | null;
+  aiLoadingPart2: boolean;
+  // 上篇摘要
+  part1Summary: Part1Summary | null;
 }
 
-export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIReport, aiReportContent, aiReportLoading }) => {
-  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+// 上篇加载提示
+const LOADING_MESSAGES_PART1 = [
+  "正在解构过往情感契约...",
+  "正在分析 TA 的防御机制...",
+  "正在评估底层依恋模式冲突...",
+  "正在剖析分手深层原因...",
+  "正在解读对方心理状态...",
+  "正在评估关系修复可能性..."
+];
 
-  const LOADING_MESSAGES = [
-    "正在解构过往情感契约...",
-    "正在分析 TA 的防御机制...",
-    "正在测算复联路径成功率...",
-    "正在生成 30 天行动指南...",
-    "正在整理深度复联话术...",
-    "正在评估底层依恋模式冲突...",
-    "正在为您定制关系修复方案..."
-  ];
+// 下篇加载提示
+const LOADING_MESSAGES_PART2 = [
+  "正在测算复联路径成功率...",
+  "正在生成 30 天行动指南...",
+  "正在整理深度复联话术...",
+  "正在为您定制关系修复方案...",
+  "正在制定阶段性行动计划...",
+  "正在评估风险与红线..."
+];
+
+export const BasicReport: React.FC<Props> = ({
+  scores,
+  onGenerateAIPart1,
+  showAIPart1,
+  aiReportPart1,
+  aiLoadingPart1,
+  onGenerateAIPart2,
+  showAIPart2,
+  aiReportPart2,
+  aiLoadingPart2,
+  part1Summary
+}) => {
+  const [loadingMsgIdxPart1, setLoadingMsgIdxPart1] = useState(0);
+  const [loadingMsgIdxPart2, setLoadingMsgIdxPart2] = useState(0);
 
   React.useEffect(() => {
-    if (!aiReportLoading) return;
+    if (!aiLoadingPart1) return;
     const msgInterval = setInterval(() => {
-      setLoadingMsgIdx(prev => (prev + 1) % LOADING_MESSAGES.length);
+      setLoadingMsgIdxPart1(prev => (prev + 1) % LOADING_MESSAGES_PART1.length);
     }, 2500);
     return () => clearInterval(msgInterval);
-  }, [aiReportLoading]);
+  }, [aiLoadingPart1]);
+
+  React.useEffect(() => {
+    if (!aiLoadingPart2) return;
+    const msgInterval = setInterval(() => {
+      setLoadingMsgIdxPart2(prev => (prev + 1) % LOADING_MESSAGES_PART2.length);
+    }, 2500);
+    return () => clearInterval(msgInterval);
+  }, [aiLoadingPart2]);
 
   const translateGrade = (grade: string) => {
     switch (grade) {
@@ -249,18 +288,18 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
           </div>
         </div>
 
-        {/* AI Action CTA - 只在未生成时显示 */}
-        {!showAIReport && !aiReportLoading && (
+        {/* AI 上篇 CTA - 只在未生成上篇时显示 */}
+        {!showAIPart1 && !aiLoadingPart1 && (
           <div className="bg-white rounded-[2.5rem] shadow-xl p-10 border border-slate-100 flex flex-col md:flex-row items-center gap-10">
             <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
               <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             </div>
             <div className="flex-grow text-center md:text-left">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">生成AI深度分析报告</h3>
-              <p className="text-slate-500 leading-relaxed text-xs">基于 50 个维度的底层数据推演，为您生成 8000+ 字的定制报告。包含 30 天复联清单、逐字话术模板以及对方心理侧写。</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">生成 AI 深度情感分析报告（上篇）</h3>
+              <p className="text-slate-500 leading-relaxed text-xs">立即查看关系现状、分手原因及对方心理的深度剖析。包含关系解读、原因分析、心理状态评估等内容。</p>
             </div>
-            <button 
-              onClick={onGenerateAI}
+            <button
+              onClick={onGenerateAIPart1}
               className="px-10 py-4 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/30 hover:bg-indigo-600 transition-all flex-shrink-0"
             >
               开始分析
@@ -268,8 +307,8 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
           </div>
         )}
 
-        {/* AI报告加载状态 */}
-        {aiReportLoading && (
+        {/* AI上篇加载状态 */}
+        {aiLoadingPart1 && (
           <div className="bg-white rounded-[2.5rem] shadow-xl p-16 border border-slate-100">
             <div className="flex flex-col items-center justify-center space-y-8">
               <div className="relative">
@@ -280,18 +319,18 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
               </div>
               <div className="text-center space-y-4">
                 <h3 className="text-xl font-bold text-slate-900 transition-all duration-500 animate-pulse">
-                  报告深度构建中...
+                  情感分析报告构建中...
                 </h3>
                 <p className="text-slate-500 text-sm font-medium h-6 flex items-center justify-center">
-                  <span key={loadingMsgIdx} className="animate-in fade-in slide-in-from-bottom-2 duration-700">
-                    {LOADING_MESSAGES[loadingMsgIdx]}
+                  <span key={loadingMsgIdxPart1} className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    {LOADING_MESSAGES_PART1[loadingMsgIdxPart1]}
                   </span>
                 </p>
                 <div className="pt-4 flex justify-center space-x-1.5">
-                  {LOADING_MESSAGES.map((_, i) => (
-                    <div 
-                      key={i} 
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === loadingMsgIdx ? 'bg-primary w-4' : 'bg-slate-200'}`} 
+                  {LOADING_MESSAGES_PART1.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === loadingMsgIdxPart1 ? 'bg-primary w-4' : 'bg-slate-200'}`}
                     />
                   ))}
                 </div>
@@ -300,7 +339,7 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
                     <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    AI报告生成预计需要1-2分钟，请勿关闭页面
+                    上篇报告生成约需1分钟，请勿关闭页面
                   </p>
                 </div>
               </div>
@@ -308,8 +347,8 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
           </div>
         )}
 
-        {/* AI深度报告内容 - 嵌入展示 */}
-        {showAIReport && aiReportContent && !aiReportLoading && (
+        {/* AI上篇报告内容 - 嵌入展示 */}
+        {showAIPart1 && aiReportPart1 && !aiLoadingPart1 && (
           <div className="bg-white rounded-[2.5rem] shadow-xl p-10 border border-slate-100">
             <div className="flex items-center justify-between mb-10">
               <div className="flex items-center space-x-3">
@@ -319,8 +358,8 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">AI 深度定制报告</h3>
-                  <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">Action Plan</p>
+                  <h3 className="text-xl font-bold text-slate-900">AI 深度情感分析报告（上篇）</h3>
+                  <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">Emotional Analysis</p>
                 </div>
               </div>
             </div>
@@ -333,37 +372,13 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
                 </p>
               </div>
 
-              {/* AI报告内容 */}
+              {/* AI上篇报告内容 */}
               <div className="space-y-10">
-                {aiReportContent.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
+                {aiReportPart1.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
                   const lines = section.split('\n');
                   const title = lines[0].length < 40 ? lines[0] : null;
                   const content = title ? lines.slice(1).join('\n') : section;
-                  const isClosing = section.includes('亲爱的朋友');
-                  
-                  if (isClosing) {
-                    // 将"亲爱的朋友："和"你好。"之间的内容作为一个整体处理
-                    const highlightedText = content.split('请对自己好一点').map((part, i, arr) => (
-                      <React.Fragment key={i}>
-                        {part}
-                        {i < arr.length - 1 && (
-                          <span className="text-rose-500 font-black text-xl md:text-2xl underline decoration-rose-300 underline-offset-8 mx-1">
-                            请对自己好一点
-                          </span>
-                        )}
-                      </React.Fragment>
-                    ));
 
-                    return (
-                      <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <div className="text-slate-600 leading-[1.7] text-sm md:text-base whitespace-pre-wrap font-normal bg-white p-0">
-                          {highlightedText}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // 将长内容按段落分割，每段独立避免分页断开
                   const paragraphs = content.split('\n').filter(p => p.trim());
 
                   return (
@@ -385,7 +400,150 @@ export const BasicReport: React.FC<Props> = ({ scores, onGenerateAI, showAIRepor
                   );
                 })}
               </div>
-              
+
+              <div className="text-center py-12">
+                <div className="w-16 h-0.5 bg-slate-200 mx-auto mb-6"></div>
+                <p className="text-slate-300 text-[9px] font-black tracking-[0.4em] uppercase mb-0">End of Part 1</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI 下篇 CTA - 上篇完成后显示，下篇未生成时 */}
+        {showAIPart1 && aiReportPart1 && !aiLoadingPart1 && !showAIPart2 && !aiLoadingPart2 && (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-[2.5rem] shadow-xl p-10 border border-emerald-100 flex flex-col md:flex-row items-center gap-10">
+            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+            </div>
+            <div className="flex-grow text-center md:text-left">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">生成完整挽回行动方案（下篇）</h3>
+              <p className="text-slate-500 leading-relaxed text-xs">基于上篇分析，获取量身定制的行动计划与成长指南。包含30天行动清单、风险提示、深层思考等内容。</p>
+            </div>
+            <button
+              onClick={onGenerateAIPart2}
+              className="px-10 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-500/30 hover:bg-emerald-700 transition-all flex-shrink-0"
+            >
+              生成下篇
+            </button>
+          </div>
+        )}
+
+        {/* AI下篇加载状态 */}
+        {aiLoadingPart2 && (
+          <div className="bg-white rounded-[2.5rem] shadow-xl p-16 border border-slate-100">
+            <div className="flex flex-col items-center justify-center space-y-8">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-emerald-50 border-t-emerald-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-10 h-10 bg-emerald-500/10 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+              <div className="text-center space-y-4">
+                <h3 className="text-xl font-bold text-slate-900 transition-all duration-500 animate-pulse">
+                  行动方案生成中...
+                </h3>
+                <p className="text-slate-500 text-sm font-medium h-6 flex items-center justify-center">
+                  <span key={loadingMsgIdxPart2} className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+                    {LOADING_MESSAGES_PART2[loadingMsgIdxPart2]}
+                  </span>
+                </p>
+                <div className="pt-4 flex justify-center space-x-1.5">
+                  {LOADING_MESSAGES_PART2.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === loadingMsgIdxPart2 ? 'bg-emerald-500 w-4' : 'bg-slate-200'}`}
+                    />
+                  ))}
+                </div>
+                <div className="pt-6 px-6 py-4 bg-amber-50 rounded-2xl border border-amber-200 max-w-md mx-auto">
+                  <p className="text-amber-700 text-sm font-medium flex items-center justify-center">
+                    <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    下篇报告生成约需1分钟，请勿关闭页面
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI下篇报告内容 - 嵌入展示 */}
+        {showAIPart2 && aiReportPart2 && !aiLoadingPart2 && (
+          <div className="bg-white rounded-[2.5rem] shadow-xl p-10 border border-slate-100">
+            <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">AI 完整挽回行动方案（下篇）</h3>
+                  <p className="text-[8px] text-slate-400 font-black tracking-widest uppercase">Action Plan</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="prose prose-slate max-w-none">
+              {/* 顶部引言卡片 */}
+              <div className="bg-emerald-50/80 p-8 md:p-10 rounded-[2.5rem] border border-emerald-100/50 shadow-sm mb-10 text-center">
+                <p className="text-emerald-900/80 text-lg md:text-xl leading-[1.6] font-medium italic mb-0">
+                  改变从行动开始，成长从此刻启程。
+                </p>
+              </div>
+
+              {/* AI下篇报告内容 */}
+              <div className="space-y-10">
+                {aiReportPart2.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
+                  const lines = section.split('\n');
+                  const title = lines[0].length < 40 ? lines[0] : null;
+                  const content = title ? lines.slice(1).join('\n') : section;
+                  const isClosing = section.includes('亲爱的朋友');
+
+                  if (isClosing) {
+                    const highlightedText = content.split('请对自己好一点').map((part, i, arr) => (
+                      <React.Fragment key={i}>
+                        {part}
+                        {i < arr.length - 1 && (
+                          <span className="text-rose-500 font-black text-xl md:text-2xl underline decoration-rose-300 underline-offset-8 mx-1">
+                            请对自己好一点
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ));
+
+                    return (
+                      <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <div className="text-slate-600 leading-[1.7] text-sm md:text-base whitespace-pre-wrap font-normal bg-white p-0">
+                          {highlightedText}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const paragraphs = content.split('\n').filter(p => p.trim());
+
+                  return (
+                    <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                      {title && (
+                        <div className="mb-4 flex items-center space-x-3" style={{ pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
+                          <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                          <h4 className="text-lg font-black text-slate-900 tracking-tight">{title}</h4>
+                        </div>
+                      )}
+                      <div className={`text-slate-600 leading-[1.7] text-sm md:text-base font-normal ${title ? 'bg-white p-0' : 'bg-slate-50/50 p-6 rounded-2xl'}`}>
+                        {paragraphs.map((para, pIdx) => (
+                          <p key={pIdx} className="mb-4 last:mb-0" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
+                            {para}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="text-center py-12">
                 <div className="w-16 h-0.5 bg-slate-200 mx-auto mb-6"></div>
                 <p className="text-slate-300 text-[9px] font-black tracking-[0.4em] uppercase mb-0">End of Analysis</p>
