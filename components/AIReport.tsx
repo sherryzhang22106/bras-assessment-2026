@@ -83,15 +83,13 @@ export const AIReport: React.FC<Props> = ({
       setLoading(false);
       clearInterval(msgInterval);
 
-      // 只在下篇完成后保存完整测评数据到数据库
-      if (part === 'part2' && !hasSavedRef.current) {
+      // 上篇完成后保存数据，下篇完成后更新数据
+      if (!hasSavedRef.current) {
         hasSavedRef.current = true;
         const sessionId = generateSessionId();
         try {
-          // 合并上下篇内容保存
-          const fullReport = part1Summary ? `${text}` : text;
-          await saveAssessment(sessionId, answers, scores, fullReport, accessCode);
-          console.log('✅ 测评数据已保存', { sessionId, accessCode });
+          await saveAssessment(sessionId, answers, scores, text, accessCode);
+          console.log('✅ 测评数据已保存', { sessionId, accessCode, part });
         } catch (error) {
           console.error('⚠️ 保存测评数据失败:', error);
         }
