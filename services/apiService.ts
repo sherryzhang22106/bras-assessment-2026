@@ -94,6 +94,7 @@ export const generateDeepReportStream = async (
     let fullContent = '';
 
     if (reader) {
+      let completed = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -111,6 +112,7 @@ export const generateDeepReportStream = async (
                 return;
               }
               if (parsed.done) {
+                completed = true;
                 onComplete(parsed.fullContent || fullContent);
                 return;
               }
@@ -123,6 +125,10 @@ export const generateDeepReportStream = async (
             }
           }
         }
+      }
+      // 兜底：如果流结束但没有收到 done 信号，也要完成
+      if (!completed && fullContent) {
+        onComplete(fullContent);
       }
     }
   } catch (error) {
