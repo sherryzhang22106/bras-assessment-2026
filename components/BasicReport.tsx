@@ -495,53 +495,99 @@ export const BasicReport: React.FC<Props> = ({
 
               {/* AI下篇报告内容 */}
               <div className="space-y-10">
-                {aiReportPart2.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
-                  const lines = section.split('\n');
-                  const title = lines[0].length < 40 ? lines[0] : null;
-                  const content = title ? lines.slice(1).join('\n') : section;
-                  const isClosing = section.includes('亲爱的朋友');
+                {(() => {
+                  // 检查是否包含固定结尾，如果有则分离出来单独渲染
+                  const fullText = aiReportPart2;
+                  const closingMarker = '————————————————————————————';
+                  const closingIndex = fullText.indexOf(closingMarker);
 
-                  if (isClosing) {
-                    const highlightedText = content.split('请对自己好一点').map((part, i, arr) => (
-                      <React.Fragment key={i}>
-                        {part}
-                        {i < arr.length - 1 && (
-                          <span className="text-rose-500 font-black text-xl md:text-2xl underline decoration-rose-300 underline-offset-8 mx-1">
-                            请对自己好一点
-                          </span>
-                        )}
-                      </React.Fragment>
-                    ));
-
-                    return (
-                      <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <div className="text-slate-600 leading-[1.7] text-sm md:text-base whitespace-pre-wrap font-normal bg-white p-0">
-                          {highlightedText}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const paragraphs = content.split('\n').filter(p => p.trim());
+                  const mainContent = closingIndex > -1 ? fullText.substring(0, closingIndex) : fullText;
+                  const closingContent = closingIndex > -1 ? fullText.substring(closingIndex) : null;
 
                   return (
-                    <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                      {title && (
-                        <div className="mb-4 flex items-center space-x-3" style={{ pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                          <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
-                          <h4 className="text-lg font-black text-slate-900 tracking-tight">{title}</h4>
+                    <>
+                      {/* 主体内容 */}
+                      {mainContent.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
+                        const lines = section.split('\n');
+                        const title = lines[0].length < 40 ? lines[0] : null;
+                        const content = title ? lines.slice(1).join('\n') : section;
+                        const paragraphs = content.split('\n').filter(p => p.trim());
+
+                        return (
+                          <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            {title && (
+                              <div className="mb-4 flex items-center space-x-3" style={{ pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
+                                <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
+                                <h4 className="text-lg font-black text-slate-900 tracking-tight">{title}</h4>
+                              </div>
+                            )}
+                            <div className={`text-slate-600 leading-[1.7] text-sm md:text-base font-normal ${title ? 'bg-white p-0' : 'bg-slate-50/50 p-6 rounded-2xl'}`}>
+                              {paragraphs.map((para, pIdx) => (
+                                <p key={pIdx} className="mb-4 last:mb-0" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
+                                  {para}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* 固定结尾卡片 */}
+                      {closingContent && (
+                        <div className="mt-12 p-8 md:p-12 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 rounded-[2.5rem] border border-amber-100/50 shadow-lg relative overflow-hidden">
+                          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.15),transparent)] pointer-events-none"></div>
+                          <div className="relative z-10">
+                            {/* 分隔线 */}
+                            <div className="flex items-center justify-center mb-8">
+                              <div className="h-px w-16 bg-amber-300/50"></div>
+                              <div className="mx-4 text-amber-400">✦</div>
+                              <div className="h-px w-16 bg-amber-300/50"></div>
+                            </div>
+
+                            {/* 致辞标题 */}
+                            <h4 className="text-center text-xl md:text-2xl font-bold text-amber-900/90 mb-8">亲爱的朋友</h4>
+
+                            {/* 主要内容 */}
+                            <div className="space-y-4 text-amber-900/80 text-sm md:text-base leading-relaxed max-w-2xl mx-auto">
+                              <p>无论这份报告的结果如何，我们都希望你明白：</p>
+                              <p className="font-medium text-amber-800">挽回的本质不是"把对方追回来"，而是"成为更好的自己"。</p>
+                              <p>如果最终你们能复合，那是因为你们真的解决了问题，建立了更健康的关系模式。</p>
+                              <p>如果最终无法挽回，你也会因为这段经历成长，在下一段关系中做得更好。</p>
+                              <p>所以，无论结果如何，你都不会白白付出。</p>
+                              <p>我们不会告诉你"只要照做就一定能成功"，因为感情从来不是数学题。</p>
+                              <p>但我们可以保证：这份报告基于心理学原理和大量真实案例，能最大限度提高你的成功率。</p>
+                            </div>
+
+                            {/* 核心寄语 */}
+                            <div className="my-10 py-6 px-8 bg-white/60 rounded-2xl text-center">
+                              <p className="text-lg md:text-xl text-amber-900/90 font-medium">
+                                最重要的是：<span className="text-rose-500 font-black text-xl md:text-2xl underline decoration-rose-300 underline-offset-4">请对自己好一点</span>
+                              </p>
+                              <p className="mt-4 text-amber-800/80">你值得被爱，无论是被对方爱，还是被未来的人爱，还是被你自己爱。</p>
+                            </div>
+
+                            {/* 署名 */}
+                            <div className="text-center">
+                              <p className="text-lg font-bold text-amber-700 mb-2">加油！</p>
+                              <p className="text-sm text-amber-600/80">—— BetterMe Space Station 情感分析团队</p>
+                            </div>
+
+                            {/* 特别声明 */}
+                            <div className="mt-10 pt-6 border-t border-amber-200/50">
+                              <p className="text-xs text-amber-700/70 font-medium mb-3 text-center">特别声明</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-amber-700/60">
+                                <p className="flex items-center"><span className="text-emerald-500 mr-2">✓</span>本测评基于心理学理论和真实案例数据</p>
+                                <p className="flex items-center"><span className="text-emerald-500 mr-2">✓</span>建议仅供参考，不构成绝对结论</p>
+                                <p className="flex items-center"><span className="text-emerald-500 mr-2">✓</span>每段关系都有其独特性，请结合实际情况判断</p>
+                                <p className="flex items-center"><span className="text-emerald-500 mr-2">✓</span>如涉及心理健康问题，请寻求专业心理咨询</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
-                      <div className={`text-slate-600 leading-[1.7] text-sm md:text-base font-normal ${title ? 'bg-white p-0' : 'bg-slate-50/50 p-6 rounded-2xl'}`}>
-                        {paragraphs.map((para, pIdx) => (
-                          <p key={pIdx} className="mb-4 last:mb-0" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
-                            {para}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
+                    </>
                   );
-                })}
+                })()}
               </div>
 
               <div className="text-center py-12">
