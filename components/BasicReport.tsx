@@ -41,6 +41,101 @@ const LOADING_MESSAGES_PART2 = [
   "正在评估风险与红线..."
 ];
 
+// 清理 Markdown 格式符号
+const cleanMarkdown = (text: string): string => {
+  return text
+    // 去除 ** 加粗符号
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    // 去除 * 斜体符号
+    .replace(/\*([^*]+)\*/g, '$1')
+    // 去除 # 标题符号（行首）
+    .replace(/^#{1,6}\s*/gm, '')
+    // 去除 <br> 标签
+    .replace(/<br\s*\/?>/gi, '\n');
+};
+
+// 检测是否是 Markdown 表格
+const isMarkdownTable = (text: string): boolean => {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return false;
+  // 检查是否有表格分隔行 |:---|:---|
+  return lines.some(line => /^\|[\s:-]+\|/.test(line));
+};
+
+// 解析 Markdown 表格为结构化数据
+const parseMarkdownTable = (text: string): { headers: string[], rows: string[][] } | null => {
+  const lines = text.trim().split('\n').filter(line => line.trim());
+  if (lines.length < 2) return null;
+
+  // 找到表头行和分隔行
+  let headerIndex = -1;
+  let separatorIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\|[\s:-]+\|/.test(lines[i]) && lines[i].includes('---')) {
+      separatorIndex = i;
+      headerIndex = i - 1;
+      break;
+    }
+  }
+
+  if (headerIndex < 0 || separatorIndex < 0) return null;
+
+  // 解析表头
+  const headers = lines[headerIndex]
+    .split('|')
+    .map(cell => cleanMarkdown(cell.trim()))
+    .filter(cell => cell);
+
+  // 解析数据行
+  const rows: string[][] = [];
+  for (let i = separatorIndex + 1; i < lines.length; i++) {
+    if (!lines[i].includes('|')) continue;
+    const cells = lines[i]
+      .split('|')
+      .map(cell => cleanMarkdown(cell.trim()))
+      .filter(cell => cell);
+    if (cells.length > 0) {
+      rows.push(cells);
+    }
+  }
+
+  return { headers, rows };
+};
+
+// 渲染表格组件
+const MarkdownTable: React.FC<{ text: string }> = ({ text }) => {
+  const tableData = parseMarkdownTable(text);
+  if (!tableData) return <p>{cleanMarkdown(text)}</p>;
+
+  return (
+    <div className="overflow-x-auto my-6">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100">
+            {tableData.headers.map((header, i) => (
+              <th key={i} className="border border-slate-200 px-4 py-3 text-left font-bold text-slate-700">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tableData.rows.map((row, rowIdx) => (
+            <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              {row.map((cell, cellIdx) => (
+                <td key={cellIdx} className="border border-slate-200 px-4 py-3 text-slate-600">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 export const BasicReport: React.FC<Props> = ({
   scores,
   onGenerateAIPart1,
@@ -375,8 +470,14 @@ export const BasicReport: React.FC<Props> = ({
               {/* AI上篇报告内容 */}
               <div className="space-y-10">
                 {aiReportPart1.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
+                  // 检查是否是表格
+                  if (isMarkdownTable(section)) {
+                    return <MarkdownTable key={idx} text={section} />;
+                  }
+
                   const lines = section.split('\n');
-                  const title = lines[0].length < 40 ? lines[0] : null;
+                  const firstLine = cleanMarkdown(lines[0]);
+                  const title = firstLine.length < 40 ? firstLine : null;
                   const content = title ? lines.slice(1).join('\n') : section;
 
                   const paragraphs = content.split('\n').filter(p => p.trim());
@@ -392,7 +493,7 @@ export const BasicReport: React.FC<Props> = ({
                       <div className={`text-slate-600 leading-[1.7] text-sm md:text-base font-normal ${title ? 'bg-white p-0' : 'bg-slate-50/50 p-6 rounded-2xl'}`}>
                         {paragraphs.map((para, pIdx) => (
                           <p key={pIdx} className="mb-4 last:mb-0" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
-                            {para}
+                            {cleanMarkdown(para)}
                           </p>
                         ))}
                       </div>
@@ -508,8 +609,14 @@ export const BasicReport: React.FC<Props> = ({
                     <>
                       {/* 主体内容 */}
                       {mainContent.split('\n\n').filter(p => p.trim() !== '').map((section, idx) => {
+                        // 检查是否是表格
+                        if (isMarkdownTable(section)) {
+                          return <MarkdownTable key={idx} text={section} />;
+                        }
+
                         const lines = section.split('\n');
-                        const title = lines[0].length < 40 ? lines[0] : null;
+                        const firstLine = cleanMarkdown(lines[0]);
+                        const title = firstLine.length < 40 ? firstLine : null;
                         const content = title ? lines.slice(1).join('\n') : section;
                         const paragraphs = content.split('\n').filter(p => p.trim());
 
@@ -524,7 +631,7 @@ export const BasicReport: React.FC<Props> = ({
                             <div className={`text-slate-600 leading-[1.7] text-sm md:text-base font-normal ${title ? 'bg-white p-0' : 'bg-slate-50/50 p-6 rounded-2xl'}`}>
                               {paragraphs.map((para, pIdx) => (
                                 <p key={pIdx} className="mb-4 last:mb-0" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
-                                  {para}
+                                  {cleanMarkdown(para)}
                                 </p>
                               ))}
                             </div>
