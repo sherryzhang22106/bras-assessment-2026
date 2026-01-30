@@ -69,10 +69,20 @@ const App: React.FC = () => {
   };
 
   // 上篇生成完成
-  const handleAIPart1Ready = (content: string, summary: Part1Summary) => {
+  const handleAIPart1Ready = async (content: string, summary: Part1Summary) => {
     setAiReportPart1(content);
     setAiLoadingPart1(false);
     setPart1Summary(summary);
+
+    // 保存上篇报告到后台
+    if (sessionIdRef.current && scores) {
+      try {
+        await saveAssessment(sessionIdRef.current, answers, scores, content, accessCode);
+        console.log('✅ 上篇AI报告已保存');
+      } catch (error) {
+        console.error('⚠️ 保存上篇AI报告失败:', error);
+      }
+    }
   };
 
   // 生成下篇
@@ -82,9 +92,20 @@ const App: React.FC = () => {
   };
 
   // 下篇生成完成
-  const handleAIPart2Ready = (content: string) => {
+  const handleAIPart2Ready = async (content: string) => {
     setAiReportPart2(content);
     setAiLoadingPart2(false);
+
+    // 保存完整报告（上篇+下篇）到后台
+    if (sessionIdRef.current && scores) {
+      const fullReport = (aiReportPart1 || '') + '\n\n' + content;
+      try {
+        await saveAssessment(sessionIdRef.current, answers, scores, fullReport, accessCode);
+        console.log('✅ 完整AI报告已保存');
+      } catch (error) {
+        console.error('⚠️ 保存完整AI报告失败:', error);
+      }
+    }
   };
 
   return (
