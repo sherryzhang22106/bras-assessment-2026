@@ -232,17 +232,17 @@ export const BasicReport: React.FC<Props> = ({
         margin: [15, 10, 15, 10], // 上右下左边距
         filename: `分手挽回测评报告_${scores.standardized}分.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
+        html2canvas: {
+          scale: 2,
           useCORS: true,
           letterRendering: true
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { 
-          mode: ['avoid-all', 'css', 'legacy'],
+        pagebreak: {
+          mode: ['css', 'legacy'],
           before: '.page-break-before',
           after: '.page-break-after',
-          avoid: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span', 'li', 'tr']
+          avoid: '.pdf-no-break'
         }
       };
       
@@ -483,7 +483,7 @@ export const BasicReport: React.FC<Props> = ({
                   const paragraphs = content.split('\n').filter(p => p.trim());
 
                   return (
-                    <div key={idx} className="relative" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div key={idx} className="relative pdf-no-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                       {title && (
                         <div className="mb-4 flex items-center space-x-3" style={{ pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                           <span className="w-1.5 h-6 bg-primary rounded-full"></span>
@@ -492,7 +492,7 @@ export const BasicReport: React.FC<Props> = ({
                       )}
                       <div className={`text-slate-600 leading-[1.7] text-sm md:text-base font-normal ${title ? 'bg-white p-0' : 'bg-slate-50/50 p-6 rounded-2xl'}`}>
                         {paragraphs.map((para, pIdx) => (
-                          <p key={pIdx} className="mb-4 last:mb-0" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
+                          <p key={pIdx} className="mb-4 last:mb-0 pdf-no-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', orphans: 3, widows: 3 }}>
                             {cleanMarkdown(para)}
                           </p>
                         ))}
